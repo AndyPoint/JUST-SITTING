@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nature listening — Just sitting</title>
+<meta name="description" content="A plate for voices that are not human. Whale, dolphin, plant, mushroom. Watch, and do not reinforce.">
+<meta name="theme-color" content="#0B0B0B">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230B0B0B'/><path d='M22.5 6.8A11 11 0 1 0 26.8 12' fill='none' stroke='%23F2F2F2' stroke-width='3.2' stroke-linecap='butt'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;700&display=swap">
+<link rel="stylesheet" href="nature.css">
+</head>
+<body>
+<div id="nature" class="nat" tabindex="0">
+  <canvas class="plate" data-n="plate" aria-label="Sand on a circular plate, inside an ensō, listening"></canvas>
+  <p class="invite" data-n="invite">Click to listen</p>
+  <button class="chrome mark" data-n="mark" aria-expanded="false" aria-controls="nature-info"><span class="dot" data-n="dot"></span><span class="clab">Listening</span></button>
+  <button class="chrome menu" data-n="menu" aria-label="Settings" aria-expanded="false" aria-controls="nature-panel"><span class="burger"><i></i><i></i><i></i></span></button>
+
+  <aside class="panel left info" id="nature-info" data-n="info" aria-label="About nature listening" aria-hidden="true">
+    <div class="head"><span class="clab">Nature listening</span><button class="x" data-n="infoClose" aria-label="Close">×</button></div>
+    <div class="sec"><p>Click or tap to listen. A bell begins it. Drop a recording anywhere. F for fullscreen.</p></div>
+    <div class="sec">
+      <h2>Why</h2>
+      <p>Just sitting is a plate shared by a machine and a person. The machine sits by writing words nobody reads. This is the same plate, turned toward a voice that was never a model: a whale, a dolphin, a plant, a mushroom.</p>
+      <p>The rule does not change. Watch, and do not reinforce. Nothing is learned. The recording is not rewritten, and no animal is asked to answer.</p>
+    </div>
+    <div class="sec">
+      <h2>How</h2>
+      <p><b>Voice.</b> Whale and dolphin begin with short public-domain recordings from NOAA Fisheries. Mycelium is not a microphone: it is an electrode on a split-gill fungus, one sample a second, heard faster as a tone the voltage bends. Your file is anything you have the right to play.</p>
+      <p><b>Surprise.</b> Each moment the spectrum, inside the voice’s band, is a distribution. The plate keeps what it has just been hearing, and measures the difference in bits — how many bits the new sound costs against that expectation. It is the same role −log₂ p plays for a token.</p>
+      <p><b>Breath.</b> Ten seconds, six a minute. The mean surprise over the breath sets how complex the figure is. The spread sets how many modes mix. A little of where the energy sat in the band nudges which mode.</p>
+      <p><b>Plate.</b> Sand is thrown off where the plate moves and comes to rest on the lines that stay still. Loudness of the voice moves the sand. Surprise chooses the shape. The modes are those of a circular membrane, J<sub>m</sub>(kr)·cos mθ.</p>
+      <p><b>Sound.</b> Under the recording, quietly, each tone is the frequency of a mode shaping the sand. The animal is not resynthesized. The tones are not fed back into the measure; only the recording is read.</p>
+      <p><b>Loop.</b> The plate’s unrest is a temperature of listening, T = 1 + 0.6 × gain × (unrest − 0.3), kept between 0.5 and 1.8. Hotter listening holds its expectation more loosely, so the same phrase reads as stranger. Gain 0 leaves the listening alone. The recording is not touched.</p>
+      <p><b>Ensō.</b> One stroke opens each eleven minutes and fades. The voice does not take an empty minute. It is not a machine, and it is not asked to stop.</p>
+    </div>
+    <div class="sec">
+      <h2>Voices</h2>
+      <p><b>Whale.</b> Humpback song, read from 40 Hz to 8 kHz. Fifty-five seconds of a NOAA recording. It loops.</p>
+      <p><b>Dolphin.</b> Bottlenose whistles and clicks, read from 1.5 kHz to 20 kHz. Six seconds. A longer file is the better sitting.</p>
+      <p><b>Mycelium.</b> <i>Schizophyllum commune</i>, differential pair 5–6, eight hours from Adamatzky’s CC BY 4.0 recordings. Heard at 120×, so a breath is twenty minutes of the fungus. The plate reads the tone, not the spreadsheet.</p>
+      <p><b>Your file.</b> Drop a recording anywhere, or use Load a recording. A plant sonification, a tree, a pitch-shifted ultrasonic click, a longer whale. The band is wide, 40 Hz to 16 kHz.</p>
+      <p>Files and licenses are in <a href="SOURCES.md">SOURCES.md</a>. Plant clicks recorded by Khait and colleagues are CC0 on Dryad and were not bundled: the files are two milliseconds at 500 kHz, and the download returned 403 from here.</p>
+    </div>
+    <div class="sec">
+      <h2>Beside</h2>
+      <p>David Rothenberg has played clarinet with singing whales, under the boat, and treated the duet as a meeting in sound rather than in words. <a href="https://fluxhawaii.com/underwater-duets/" target="_blank" rel="noopener">Underwater duets</a>. This plate does not answer. His recordings are not in it.</p>
+      <p><a href="../just-sitting.html">Just sitting</a>, the plate with a language model. This page does not change it.</p>
+      <p>Andy Point · Pointlab, 2026. A study toward voices that are not ours.</p>
+    </div>
+  </aside>
+
+  <aside class="panel right" id="nature-panel" data-n="panel" aria-label="Settings" aria-hidden="true">
+    <div class="head"><span class="clab">Settings</span><button class="x" data-n="panelClose" aria-label="Close settings">×</button></div>
+    <div class="sec">
+      <div class="row"><span class="lab">Voice</span><span class="vsm" data-n="sourceLabel">Whale</span></div>
+      <div class="btns" data-n="sources" role="group" aria-label="Choose a voice"></div>
+      <div class="row"><span class="lab">Band</span><span class="vsm" data-n="band"></span></div>
+      <div class="row"><span class="lab">File</span><span class="vsm" data-n="fileName"></span></div>
+      <p class="hint" data-n="hint"></p>
+      <div class="btns">
+        <button class="toggle" data-n="loadBtn">Load a recording</button>
+      </div>
+      <canvas class="seis" data-n="seis" aria-label="Surprise, in bits, over the last twenty seconds"></canvas>
+      <div class="row"><span class="lab">This moment</span><span class="val" data-n="rNow">0.00<small>BITS</small></span></div>
+      <div class="row"><span class="lab">Mean surprise</span><span class="val" data-n="rMu">0.00<small>BITS</small></span></div>
+      <div class="row"><span class="lab">Spread</span><span class="val" data-n="rSigma">0.00<small>BITS</small></span></div>
+    </div>
+    <div class="sec">
+      <div class="row"><span class="lab">Time</span><span class="val" data-n="rTime">00:00</span></div>
+      <div class="row"><span class="lab">Breath</span><span class="vsm" data-n="rBreath">–</span></div>
+      <div class="row"><span class="lab">Modes (m,n)</span><span class="vsm" data-n="rModes">–</span></div>
+      <div class="row"><span class="lab">Frequencies</span><span class="vsm" data-n="rFreq">–</span></div>
+      <div class="row"><span class="lab">Temperature</span><span class="val" data-n="rT">1.00</span></div>
+      <div class="row"><span class="lab">Unrest</span><span class="vsm" data-n="rU">0.00</span></div>
+    </div>
+    <div class="sec">
+      <div class="row"><label class="lab" for="nature-gain">Loop gain</label><span class="val" data-n="rGain">1.00</span></div>
+      <input type="range" id="nature-gain" data-n="gain" min="0" max="2" step="0.01" value="1">
+      <p class="hint">How strongly unrest loosens the expectation. 0 leaves the listening alone. The recording is not changed.</p>
+      <div class="row"><label class="lab" for="nature-echo">Echo</label><span class="val" data-n="rEcho">0.90</span></div>
+      <input type="range" id="nature-echo" data-n="echo" min="0" max="0.97" step="0.01" value="0.9">
+      <p class="hint">Each frame returns slightly smaller and turned.</p>
+    </div>
+    <div class="sec">
+      <div class="row"><span class="lab">Ink</span><span class="stepper"><button data-n="inkPrev" aria-label="Previous ink">‹</button><span class="clab" data-n="inkLabel">White</span><button data-n="inkNext" aria-label="Next ink">›</button></span></div>
+      <div class="btns">
+        <button class="toggle" data-n="soundBtn" aria-pressed="true">Sound on</button>
+        <button class="toggle" data-n="plateBtn" aria-pressed="true">Tones on</button>
+        <button class="toggle" data-n="fsBtn">Fullscreen</button>
+      </div>
+    </div>
+    <div class="foot">
+      <p class="hint">I about · P settings · F fullscreen · M sound · V voice · [ ] gain</p>
+    </div>
+  </aside>
+  <input type="file" data-n="file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac,.aac" hidden>
+  <audio data-n="audio" preload="auto" loop></audio>
+</div>
+<script src="sources.js"></script>
+<script src="plate.js"></script>
+<script src="listen.js"></script>
+<script src="render.js"></script>
+<script src="mycelium.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

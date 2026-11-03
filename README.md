@@ -84,6 +84,18 @@ The recorder was written without access to a model, so it hasn't been run yet.
 | [ ] | loop gain |
 | Esc | close panels |
 
+## Nature listening
+
+A separate page for voices that are not a language model. The sitting piece is unchanged. Open `nature/index.html` (or serve the repository and open `/nature/`).
+
+Click to listen. The first voice is a humpback whale recorded by NOAA Fisheries, public domain. The picker is **Whale**, **Dolphin**, **Mycelium**, and **Your file**. Drop any recording you have the right to play onto the plate. F for fullscreen.
+
+The recording plays as itself. Once a breath — ten seconds — the plate measures how far the spectrum moved from what the recent sound had led it to expect, in bits. That surprise chooses the figure. Sand settles where the plate is still. Under the recording, quietly, the tones are the frequencies of those modes. They are not fed back into the measure. The recording is not rewritten. The plate’s unrest only loosens the expectation, which is the temperature of the listening. Nothing is learned.
+
+Mycelium is an electrode, not a microphone: eight hours of *Schizophyllum commune*, from Adamatzky’s CC BY 4.0 recordings, heard 120 times faster. Plant clicks from Khait et al. (CC0 on Dryad) are not bundled; the files are ultrasonic and the download was refused from here. Bring a slowed file, or a PlantWave session, through **Your file**.
+
+Licenses, checksums, and what was left out: `nature/SOURCES.md`.
+
 ## Gallery
 
 One computer runs the work. Its own screen is the control room. The projector shows only the circle, on true black.
