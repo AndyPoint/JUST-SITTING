@@ -218,12 +218,49 @@ var NatureView = (function () {
         Rp = m * 0.331;
         var gap = m * 0.047;
         cell = Math.max(1, Math.round(dpr * clamp(Math.round(Math.min(cssW, cssH) / 280), 2, 5)));
-        var RE = (Rp + gap) / (enso.inner || 0.93);
-        if (enso.dabs.length) enso.place(W, H, cx, cy, RE);
-        enso._RE = RE; enso._gap = gap;
+        var RE = Rp + gap;
+        enso._RE = RE; enso._gap = gap; enso.cx = cx; enso.cy = cy;
+        var pw = Math.max(1, Math.ceil(W * 0.5)), ph = Math.max(1, Math.ceil(H * 0.5));
+        if (enso.cv.width !== pw || enso.cv.height !== ph) {
+          enso.cv.width = pw; enso.cv.height = ph;
+          enso.clear();
+        }
         resizeTargets();
         if (enso.cv.width > 1) uploadWet();
         return { W: W, H: H, Rp: Rp, dpr: dpr };
+      },
+      clearPaper: function () { enso.clear(); uploadWet(); },
+      paper: function () {
+        var R = enso._RE || Rp, WS = 0.5, c = enso.ctx;
+        function dab(x, y, rad, alpha) {
+          var a = alpha < 0 ? 0 : alpha > 1 ? 1 : alpha;
+          c.globalCompositeOperation = "lighter";
+          c.fillStyle = "rgba(255,255,255," + a.toFixed(3) + ")";
+          c.beginPath();
+          c.arc((cx + x * R) * WS, (cy + y * R) * WS, Math.max(0.45, rad * R * WS), 0, TAU);
+          c.fill();
+          enso.dirty = true;
+        }
+        return {
+          dab: dab,
+          fade: function (amount) {
+            c.globalCompositeOperation = "source-over";
+            c.fillStyle = "rgba(0,0,0," + amount + ")";
+            c.fillRect(0, 0, enso.cv.width, enso.cv.height);
+            enso.dirty = true;
+          },
+          fadeRim: function (amount) {
+            var gx = cx * WS, gy = cy * WS, rad = R * WS;
+            var g = c.createRadialGradient(gx, gy, rad * 0.2, gx, gy, rad * 1.08);
+            g.addColorStop(0, "rgba(0,0,0,0)");
+            g.addColorStop(0.55, "rgba(0,0,0,0)");
+            g.addColorStop(1, "rgba(0,0,0," + amount + ")");
+            c.globalCompositeOperation = "source-over";
+            c.fillStyle = g;
+            c.fillRect(0, 0, enso.cv.width, enso.cv.height);
+            enso.dirty = true;
+          }
+        };
       },
       beginCycle: function (rng) {
         var RE = (Rp + (enso._gap || 0)) / 0.93;
@@ -233,8 +270,9 @@ var NatureView = (function () {
         uploadWet();
       },
       setInk: function (name) { ink = name === "RED" ? "RED" : "WHITE"; },
+      strokeOn: true,
       frame: function (f) {
-        if (enso.dabs.length) enso.draw(f.draw || 0);
+        if (!this.strokeOn && enso.dabs.length) enso.draw(f.draw || 0);
         if (enso.dirty) { uploadWet(); enso.dirty = false; }
         var echo = f.echo == null ? 0.9 : f.echo;
         var pa = 0.06 + 0.5 * (1 - echo);

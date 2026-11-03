@@ -84,17 +84,28 @@ The recorder was written without access to a model, so it hasn't been run yet.
 | [ ] | loop gain |
 | Esc | close panels |
 
-## Nature listening
+## Works
 
-A separate page for voices that are not a language model. The sitting piece is unchanged. Open `nature/index.html` (or serve the repository and open `/nature/`).
+One page, `nature/index.html`. Settings chooses the work. Serve the repository and open `/nature/`, or open the file.
 
-Click to listen. The first voice is a humpback whale recorded by NOAA Fisheries, public domain. The picker is **Whale**, **Dolphin**, **Mycelium**, and **Your file**. Drop any recording you have the right to play onto the plate. F for fullscreen.
+**Just sitting** is the original piece, mounted whole from `just-sitting.html`. Its closed loop is unchanged: the plate’s unrest still sets the temperature of the token stream. It is not reimplemented on the shared plate. A copy would drift.
 
-The recording plays as itself. Once a breath — ten seconds — the plate measures how far the spectrum moved from what the recent sound had led it to expect, in bits. That surprise chooses the figure. Sand settles where the plate is still. Under the recording, quietly, the tones are the frequencies of those modes. They are not fed back into the measure. The recording is not rewritten. The plate’s unrest only loosens the expectation, which is the temperature of the listening. Nothing is learned.
+The other works share one engine: a breath of ten seconds, surprise in bits from the spectrum, the Chladni plate, and a quiet tone for each mode. Their voice is open. The object that reads the sound is frozen and takes only the time step. Unrest is shown in settings and then discarded. Speed (how fast the recording plays) and tuning (pitch, in semitones, without changing that speed) are in settings. They are the listener’s hands.
 
-Mycelium is an electrode, not a microphone: eight hours of *Schizophyllum commune*, from Adamatzky’s CC BY 4.0 recordings, heard 120 times faster. Plant clicks from Khait et al. (CC0 on Dryad) are not bundled; the files are ultrasonic and the download was refused from here. Bring a slowed file, or a PlantWave session, through **Your file**.
+| Work | Stroke | Voice |
+|---|---|---|
+| Just sitting | the original ensō | the model, closed loop |
+| Mycelium mind | hyphae from the rim inward; quiet paths fade | Adamatzky, *Schizophyllum commune*, CC BY 4.0 |
+| Whale song · Singing Earth's Memory | one slow wave around the circle | NOAA humpback, public domain |
+| Tree song · I Breathe You | a crown from the centre, a ring each breath | none bundled; drop a file |
+| Dolphin · Kaikuluotain | pings and returning grains; the circle is not drawn | NOAA bottlenose, public domain |
+| Small plant | a rosette at the golden angle | none bundled; drop a file |
 
-Licenses, checksums, and what was left out: `nature/SOURCES.md`.
+Your file replaces the work’s voice and keeps its stroke. The stroke stays open and closes on the last of eleven breaths.
+
+On a phone or an iPad the sand is capped at 8,000 grains, so the breath can keep its frame. A full laptop uses 11,000. The pitch shift is a short dual delay, not a phase vocoder; wide tuning adds a little chorus. Turning the mycelium trace into a tone takes a moment when that work opens.
+
+Licenses and what was left out: `nature/SOURCES.md`.
 
 ## Gallery
 

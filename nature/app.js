@@ -16,8 +16,15 @@
   var rank = NatureListen.makeRank();
 
   var params = new URLSearchParams(location.search);
-  var source = natureSource(params.get("source") || "whale");
+  var work = natureWork(params.get("work") || "whale");
+  var lastNature = work.closed ? "whale" : work.id;
+  var source = natureSource(work.voice || "file");
   var custom = null;
+  var stroke = NatureStrokes.create(work.stroke || "whale");
+  var openVoice = null;
+  var shifter = null;
+  var speed = 1;
+  var tuning = 0;
   var sitting = false;
   var soundOn = true;
   var plateOn = true;
@@ -72,7 +79,8 @@
     var cssW = Math.max(2, r.width), cssH = Math.max(2, r.height);
     laid = view.layout(cssW, cssH);
     if (!parts) {
-      nParts = cssW * cssH < 600000 ? 8000 : 14000;
+      var coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+      nParts = coarse || cssW * cssH < 900000 ? 8000 : 11000;
       parts = P.makeParticles(nParts);
       P.scatterParticles(parts, prng);
     }
@@ -124,28 +132,32 @@
     setFigure(P.chooseModes(stats));
   }
 
-  function onBreathBoundary(b, age) {
+  function cycleLen() { return (work.breaths || 11) * P.BREATH; }
+
+  function onBreathBoundary(b) {
     if (breathIdx >= 0) commit(reader.take());
     breathIdx = b;
-    var cyc = Math.floor(age < 0.001 && sittingTime > 1 ? sittingTime / CYCLE : sittingTime / CYCLE);
+    var len = cycleLen();
+    var cyc = Math.floor(sittingTime / len);
     if (cyc !== cycleId) {
+      var first = cycleId < 0;
       cycleId = cyc;
-      view.beginCycle(shapeRng);
+      if (!first && work.stroke === "whale" && view.paper) view.paper().fade(0.45);
+      else if (!first && view.clearPaper) { view.clearPaper(); if (stroke) stroke.reset(); }
       if (sitting && cyc > 0 && soundOn) bell();
     }
   }
 
   function schedule(t) {
+    var len = cycleLen();
     var b = Math.floor(t / P.BREATH);
-    var age = t % CYCLE;
-    var ph = (t - b * P.BREATH) / P.BREATH;
-    if (b !== breathIdx) onBreathBoundary(b, age);
-    var level = age < HOLD ? 0 : LEVEL_MAX * Math.pow(clamp((age - HOLD) / (CYCLE - HOLD), 0, 1), 1.3);
+    var age = t % len;
+    var ph = (t / P.BREATH) % 1;
+    if (b !== breathIdx) onBreathBoundary(b);
+    var breathIn = ((b % work.breaths) + work.breaths) % work.breaths;
     return {
-      b: b, ph: ph, br: P.breathCurve(ph), age: age,
-      draw: clamp(age / DRAW, 0, 1),
-      level: level,
-      wetOn: level >= LEVEL_MAX - 0.01 ? 0 : 1
+      b: b, ph: ph, br: P.breathCurve(ph), age: age, cycleLen: len, breathIn: breathIn,
+      draw: 0, level: 0, wetOn: 1
     };
   }
 
@@ -175,7 +187,10 @@
     comp.ratio.value = 2.5;
     comp.attack.value = 0.01;
     comp.release.value = 0.3;
-    input.connect(analyser);
+    shifter = NatureOpen.makeShifter(ctx);
+    openVoice = NatureOpen.seal(reader);
+    input.connect(shifter.input);
+    shifter.output.connect(analyser);
     analyser.connect(voiceGain);
     voiceGain.connect(master);
     plateGain.connect(master);
@@ -202,11 +217,12 @@
       g.gain.value = 0;
       g.connect(plateGain);
       var os = [];
+      var ratio = openVoice ? openVoice.pitchRatio() : 1;
       function tone(hz, vol) {
         var o = ctx.createOscillator();
         var pg = ctx.createGain();
         o.type = "sine";
-        o.frequency.value = hz;
+        o.frequency.value = hz * ratio;
         pg.gain.value = vol;
         o.connect(pg);
         pg.connect(g);
@@ -216,7 +232,7 @@
       tone(m.f, 1);
       tone(m.f * 1.0019, 0.6);
       tone(m.f * 2.003, 0.28);
-      return { g: g, o: os, base: m.w * norm * Math.pow(P.F0 / m.f, 0.35) * 0.11 };
+      return { g: g, o: os, f: m.f, base: m.w * norm * Math.pow(P.F0 / m.f, 0.35) * 0.11 };
     });
   }
 
@@ -255,14 +271,14 @@
     bufferNode = null;
   }
 
-  function beginClock() {
+  function beginClock(withSound) {
     if (!sitting) return;
     origin = ctx.currentTime;
     sittingTime = 0;
     breathIdx = -1;
     cycleId = -1;
     heardAudio = true;
-    root.classList.add("hearing");
+    root.classList.toggle("hearing", withSound !== false);
     reader.setBand(source.band);
     reader.attach(ctx, analyser);
     heard = null;
@@ -289,8 +305,10 @@
     bufferNode = ctx.createBufferSource();
     bufferNode.buffer = buffer;
     bufferNode.loop = true;
+    bufferNode.playbackRate.value = speed;
     bufferNode.connect(input);
     bufferNode.start();
+    if (openVoice) openVoice.bind(ctx, bufferNode, shifter);
     beginClock();
   }
 
@@ -359,7 +377,14 @@
     if (!file) return;
     if (custom && custom.url) URL.revokeObjectURL(custom.url);
     custom = { name: file.name.replace(/\.[^.]+$/, ""), url: URL.createObjectURL(file) };
-    source = natureSource("file");
+    if (work.closed) {
+      hideSitting();
+      work = natureWork(lastNature || "whale");
+      stroke = NatureStrokes.create(work.stroke);
+      if (view.clearPaper) view.clearPaper();
+      stroke.reset();
+    }
+    ui.titles();
     ui.voice();
     if (!sitting) sit();
     else playCurrent();
@@ -371,32 +396,50 @@
     return ex.credit + ". " + ex.license + " " + (ex.note || "") + " Drop a recording to replace it.";
   }
 
+  function activeSource() {
+    if (custom) return natureSource("file");
+    return natureSource(work.voice || "file");
+  }
+
   function playCurrent() {
+    if (work.closed) return;
+    source = activeSource();
     reader.setBand(source.band);
-    if (source.id === "file") {
-      if (custom) loadUrl(custom.url, custom.name);
-      else {
-        rest();
-        ui.hint(source.obtain);
-        ui.voice();
-      }
-      return;
-    }
-    if (source.series) {
-      loadSeries(source);
-      return;
-    }
-    if (source.exemplar) {
-      loadUrl(source.exemplar.url, exemplarLabel(source));
-      return;
-    }
-    rest();
-    ui.hint(source.obtain);
+    if (custom) { loadUrl(custom.url, custom.name); return; }
+    if (source.series) { loadSeries(source); return; }
+    if (source.exemplar) { loadUrl(source.exemplar.url, exemplarLabel(source)); return; }
+    stopBuffer();
+    try { audioEl.pause(); } catch (e) {}
+    loadGen++;
+    if (!ctx) ensureAudio();
+    beginClock(false);
+    ui.hint("No recording is bundled for this work. Drop a file you have the right to play. The stroke still keeps the breath.");
     ui.voice();
+  }
+
+  function showSitting() {
+    work = natureWork("sitting");
+    rest();
+    root.classList.add("as-sitting");
+    var frame = $("sitting");
+    frame.hidden = false;
+    $("worksBack").hidden = false;
+    if (!frame.getAttribute("src")) frame.src = "../just-sitting.html";
+    closePanels();
+    ui.titles();
+  }
+
+  function hideSitting() {
+    root.classList.remove("as-sitting");
+    var frame = $("sitting");
+    frame.hidden = true;
+    frame.removeAttribute("src");
+    $("worksBack").hidden = true;
   }
 
   function sit() {
     if (sitting) return;
+    if (work.closed) { showSitting(); return; }
     if (!ensureAudio()) return;
     sitting = true;
     root.classList.add("sitting");
@@ -408,19 +451,30 @@
     wake();
   }
 
-  function setSource(id) {
-    if (source.id === id && sitting && heardAudio) return;
-    source = natureSource(id);
+  function setWork(id) {
+    var next = natureWork(id);
+    if (next.closed) { showSitting(); ui.works(); return; }
+    if (work.id === next.id && sitting) return;
+    hideSitting();
+    lastNature = next.id;
+    work = next;
+    source = activeSource();
     reader.setBand(source.band);
-    ui.voice();
+    stroke = NatureStrokes.create(work.stroke);
+    breathIdx = -1;
+    cycleId = -1;
+    if (view.clearPaper) view.clearPaper();
+    stroke.reset();
+    ui.titles();
+    ui.works();
     if (!sitting) sit();
     else playCurrent();
   }
 
-  function stepSource(dir) {
+  function stepWork(dir) {
     var i = 0;
-    for (var k = 0; k < NATURE_SOURCES.length; k++) if (NATURE_SOURCES[k].id === source.id) i = k;
-    setSource(NATURE_SOURCES[(i + dir + NATURE_SOURCES.length) % NATURE_SOURCES.length].id);
+    for (var k = 0; k < NATURE_WORKS.length; k++) if (NATURE_WORKS[k].id === work.id) i = k;
+    setWork(NATURE_WORKS[(i + dir + NATURE_WORKS.length) % NATURE_WORKS.length].id);
   }
 
   var wakeLock = null;
@@ -480,27 +534,35 @@
   var sctx = seis.getContext("2d");
   var ui = {
     hint: function (t) { $("hint").textContent = t; },
-    voice: function () {
-      $("sourceLabel").textContent = source.name;
-      $("band").textContent = source.band[0] + "–" + source.band[1] + " Hz";
-      var buttons = root.querySelectorAll("[data-source]");
+    titles: function () {
+      $("title").textContent = work.title;
+      var sub = $("subtitle");
+      sub.textContent = work.subtitle || "";
+      sub.hidden = !work.subtitle;
+      document.title = work.title;
+    },
+    works: function () {
+      var buttons = root.querySelectorAll("[data-work]");
       for (var i = 0; i < buttons.length; i++) {
-        buttons[i].setAttribute("aria-pressed", String(buttons[i].getAttribute("data-source") === source.id));
+        buttons[i].setAttribute("aria-pressed", String(buttons[i].getAttribute("data-work") === work.id));
       }
-      var ex = source.exemplar;
-      var series = source.series;
+    },
+    voice: function () {
+      var shown = custom ? custom.name : (source.exemplar ? source.exemplar.title : (source.series ? "Schizophyllum, 8 h at 120×" : "None yet"));
+      $("fileName").textContent = shown;
+      $("band").textContent = source.band[0] + "–" + source.band[1] + " Hz";
+      $("loopState").textContent = work.closed ? "Closed" : "Open";
       if (!sitting || !heardAudio) {
-        this.hint(source.id === "file"
-          ? (custom ? custom.name : source.obtain)
-          : (ex ? exemplarLabel(source) : (series ? series.credit + " " + series.license + ". " + series.note : source.obtain)));
+        var ex = source.exemplar, series = source.series;
+        this.hint(custom ? custom.name : (ex ? exemplarLabel(source) : (series ? series.note + " " + series.license + "." : "No recording is bundled. Drop a file you have the right to play.")));
       }
-      $("fileName").textContent = source.id === "file"
-        ? (custom ? custom.name : "None yet")
-        : (ex ? ex.title : (series ? "Schizophyllum, 8 h at 120×" : "—"));
       var invite = $("invite");
       if (invite && !root.classList.contains("drag")) {
-        invite.textContent = source.id === "file" && !custom ? "Drop a recording" : "Click to listen";
+        invite.textContent = (!source.exemplar && !source.series && !custom) ? "Drop a recording" : "Click to listen";
       }
+      this.works();
+      this.speed();
+      this.tuning();
     },
     breath: function () {
       var st = heard;
@@ -513,9 +575,8 @@
     tick: function (sch) {
       $("dot").style.opacity = sitting && sch ? (0.35 + 0.65 * sch.br).toFixed(2) : "1";
       if (!panel.classList.contains("open")) return;
-      $("rTime").textContent = mmss(sittingTime) + " / " + mmss(CYCLE);
-      $("rBreath").textContent = sch ? String(Math.floor(sch.age / P.BREATH) + 1) : "–";
-      $("rT").textContent = temperature().toFixed(2);
+      $("rTime").textContent = mmss(sittingTime % cycleLen()) + " / " + mmss(cycleLen());
+      $("rBreath").textContent = sch ? String(sch.breathIn + 1) + " / " + work.breaths : "–";
       $("rU").textContent = U.toFixed(2);
       $("rNow").innerHTML = last.bits.toFixed(2) + "<small>BITS</small>";
       this.seis();
@@ -537,9 +598,16 @@
         sctx.fillRect(i * bw, h - 1 - bh, Math.max(1, bw - 0.5), bh);
       }
     },
-    gain: function () {
-      $("rGain").textContent = gain.toFixed(2);
-      $("gain").value = String(gain);
+    speed: function () {
+      if (!$("rSpeed")) return;
+      $("rSpeed").textContent = speed.toFixed(2) + "×";
+      $("speed").value = String(speed);
+    },
+    tuning: function () {
+      if (!$("rTune")) return;
+      var sign = tuning > 0 ? "+" : "";
+      $("rTune").textContent = sign + tuning.toFixed(0);
+      $("tune").value = String(tuning);
     },
     echo: function () {
       $("rEcho").textContent = echo.toFixed(2);
@@ -573,10 +641,26 @@
 
   function tick(dt) {
     var sch = null;
-    if (sitting && ctx && heardAudio) {
+    if (sitting && ctx && !work.closed) {
       sittingTime = Math.max(0, ctx.currentTime - origin);
       sch = schedule(sittingTime);
-      if (analyser) last = reader.pull(dt, temperature());
+      if (openVoice) last = openVoice.pull(dt);
+      if (stroke && view.paper) {
+        var lo = source.band[0], hi = source.band[1], cen = 0;
+        if (last.centroid && hi > lo) cen = clamp((last.centroid - lo) / (hi - lo), 0, 1);
+        stroke.step(view.paper(), {
+          pos: sch.cycleLen ? sch.age / sch.cycleLen : 0,
+          breath: sch.breathIn,
+          breaths: work.breaths,
+          last: sch.breathIn === work.breaths - 1,
+          close: sch.breathIn === work.breaths - 1 ? sch.ph : 0,
+          energy: last.energy || 0,
+          flux: last.flux || 0,
+          bits: last.bits || 0,
+          centroid: cen,
+          phase: sch.ph
+        });
+      }
       seisAcc += dt;
       if (seisAcc >= 1 / 12) {
         seisAcc = 0;
@@ -601,9 +685,9 @@
     view.frame({
       n: parts.n, px: parts.x, py: parts.y,
       echo: echo, dtf: dt * 60,
-      draw: sitting ? sch.draw : 0,
-      level: sitting ? sch.level : 0,
-      wetOn: sitting ? sch.wetOn : 0
+      draw: 0,
+      level: 0,
+      wetOn: sitting && !work.closed ? 1 : 0
     });
     ui.tick(sitting ? sch : null);
   }
@@ -621,7 +705,9 @@
   fieldDirty = true;
   refreshField();
   ui.voice();
-  ui.gain();
+  ui.titles();
+  ui.speed();
+  ui.tuning();
   ui.echo();
   ui.toggles();
   requestAnimationFrame(loop);
@@ -636,16 +722,26 @@
   $("menu").addEventListener("click", toggleSettings);
   $("infoClose").addEventListener("click", closePanels);
   $("panelClose").addEventListener("click", closePanels);
-  var sourceBox = $("sources");
-  NATURE_SOURCES.forEach(function (s) {
+  var workBox = $("works");
+  NATURE_WORKS.forEach(function (w) {
     var b = document.createElement("button");
     b.type = "button";
-    b.className = "toggle";
-    b.textContent = s.name;
-    b.setAttribute("data-source", s.id);
-    b.addEventListener("click", function () { setSource(s.id); });
-    sourceBox.appendChild(b);
+    b.className = "work";
+    b.setAttribute("data-work", w.id);
+    b.setAttribute("aria-pressed", "false");
+    var name = document.createElement("span");
+    name.className = "clab";
+    name.textContent = w.title;
+    b.appendChild(name);
+    if (w.subtitle) {
+      var sub = document.createElement("small");
+      sub.textContent = w.subtitle;
+      b.appendChild(sub);
+    }
+    b.addEventListener("click", function () { setWork(w.id); });
+    workBox.appendChild(b);
   });
+  ui.works();
   ui.voice();
   $("loadBtn").addEventListener("click", function () { $("file").click(); });
   $("file").addEventListener("change", function () {
@@ -657,9 +753,30 @@
   $("fsBtn").addEventListener("click", toggleFullscreen);
   $("inkPrev").addEventListener("click", function () { setInk(ink === "RED" ? "WHITE" : "RED"); });
   $("inkNext").addEventListener("click", function () { setInk(ink === "RED" ? "WHITE" : "RED"); });
-  $("gain").addEventListener("input", function () {
-    gain = clamp(parseFloat($("gain").value), 0, 2);
-    ui.gain();
+  $("speed").addEventListener("input", function () {
+    speed = clamp(parseFloat($("speed").value), 0.5, 1.5);
+    if (openVoice) openVoice.setSpeed(speed);
+    ui.speed();
+  });
+  $("tune").addEventListener("input", function () {
+    tuning = clamp(parseFloat($("tune").value), -12, 12);
+    if (openVoice) openVoice.setTuning(tuning);
+    if (figure) retune(figure.modes);
+    ui.tuning();
+  });
+  $("worksBack").addEventListener("click", function () {
+    hideSitting();
+    work = natureWork(lastNature || "whale");
+    stroke = NatureStrokes.create(work.stroke);
+    ui.titles();
+    ui.works();
+    toggleSettings();
+  });
+  $("clearFile").addEventListener("click", function () {
+    if (custom && custom.url) URL.revokeObjectURL(custom.url);
+    custom = null;
+    if (sitting && !work.closed) playCurrent();
+    else ui.voice();
   });
   $("echo").addEventListener("input", function () {
     echo = clamp(parseFloat($("echo").value), 0, 0.97);
@@ -687,9 +804,11 @@
     else if (k === "p" || k === "P") toggleSettings();
     else if (k === "f" || k === "F") toggleFullscreen();
     else if (k === "m" || k === "M") setSound(!soundOn);
-    else if (k === "v" || k === "V") stepSource(1);
-    else if (k === "[") { gain = clamp(gain - 0.05, 0, 2); ui.gain(); }
-    else if (k === "]") { gain = clamp(gain + 0.05, 0, 2); ui.gain(); }
+    else if (k === "v" || k === "V") stepWork(1);
+    else if (k === "[") { speed = clamp(speed - 0.05, 0.5, 1.5); if (openVoice) openVoice.setSpeed(speed); ui.speed(); }
+    else if (k === "]") { speed = clamp(speed + 0.05, 0.5, 1.5); if (openVoice) openVoice.setSpeed(speed); ui.speed(); }
+    else if (k === "-" || k === "_") { tuning = clamp(tuning - 1, -12, 12); if (openVoice) openVoice.setTuning(tuning); if (figure) retune(figure.modes); ui.tuning(); }
+    else if (k === "=" || k === "+") { tuning = clamp(tuning + 1, -12, 12); if (openVoice) openVoice.setTuning(tuning); if (figure) retune(figure.modes); ui.tuning(); }
     else return;
     ev.preventDefault();
   });
@@ -699,21 +818,43 @@
 
   window.NATURE = {
     sit: sit,
-    setSource: setSource,
+    setWork: setWork,
     useFile: useFile,
+    advance: function (seconds) {
+      var steps = Math.round(seconds * 30), dt = 1 / 30, i;
+      for (i = 0; i < steps; i++) {
+        sittingTime += dt;
+        var sch = schedule(sittingTime);
+        if (parts && i % 2 === 0) P.stepParticles(parts, field, 0.55 * (0.2 + 0.8 * (last.energy || 0.5)), prng);
+        if (!stroke || !view.paper || work.closed) continue;
+        var lo = source.band[0], hi = source.band[1], cen = 0;
+        if (last.centroid && hi > lo) cen = clamp((last.centroid - lo) / (hi - lo), 0, 1);
+        stroke.step(view.paper(), {
+          pos: sch.cycleLen ? (sittingTime % sch.cycleLen) / sch.cycleLen : 0,
+          breath: sch.breathIn, breaths: work.breaths,
+          last: sch.breathIn === work.breaths - 1,
+          close: sch.breathIn === work.breaths - 1 ? sch.ph : 0,
+          energy: last.energy || 0.4, flux: last.flux || 0, bits: last.bits || 0, centroid: cen, phase: sch.ph
+        });
+      }
+    },
     snapshot: function () {
       return {
         sitting: sitting,
+        work: work.id,
+        closed: !!work.closed,
+        openVoice: !!(openVoice && Object.isFrozen(openVoice) && openVoice.pull.length === 1 && openVoice.setUnrest === undefined),
         source: source.id,
-        file: custom ? custom.name : (source.exemplar ? source.exemplar.title : ""),
+        file: custom ? custom.name : (source.exemplar ? source.exemplar.title : (source.series ? "mycelium" : "")),
         bits: last.bits,
         energy: last.energy,
+        flux: last.flux,
         silent: last.silent,
         mu: heard ? heard.mu : null,
-        sigma: heard ? heard.sigma : null,
         modes: figure ? figure.modes.map(function (m) { return { m: m.m, n: m.n, f: m.f }; }) : [],
         U: U,
-        T: temperature(),
+        speed: speed,
+        tuning: tuning,
         t: sittingTime,
         particles: parts ? parts.n : 0,
         gl: view.gl,

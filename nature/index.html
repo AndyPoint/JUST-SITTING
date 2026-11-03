@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Nature listening — Just sitting</title>
-<meta name="description" content="A plate for voices that are not human. Whale, dolphin, plant, mushroom. Watch, and do not reinforce.">
+<title>Just sitting</title>
+<meta name="description" content="One plate. Just sitting, mycelium mind, whale song, tree song, dolphin, small plant.">
 <meta name="theme-color" content="#0B0B0B">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230B0B0B'/><path d='M22.5 6.8A11 11 0 1 0 26.8 12' fill='none' stroke='%23F2F2F2' stroke-width='3.2' stroke-linecap='butt'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,7 +16,8 @@
 <div id="nature" class="nat" tabindex="0">
   <canvas class="plate" data-n="plate" aria-label="Sand on a circular plate, inside an ensō, listening"></canvas>
   <p class="invite" data-n="invite">Click to listen</p>
-  <button class="chrome mark" data-n="mark" aria-expanded="false" aria-controls="nature-info"><span class="dot" data-n="dot"></span><span class="clab">Listening</span></button>
+  <button class="chrome mark" data-n="mark" aria-expanded="false" aria-controls="nature-info"><span class="dot" data-n="dot"></span><span class="titles"><span class="clab" data-n="title">Whale song</span><span class="sub" data-n="subtitle">Singing Earth's Memory</span></span></button>
+  <button class="works-back" data-n="worksBack" hidden>Works</button>
   <button class="chrome menu" data-n="menu" aria-label="Settings" aria-expanded="false" aria-controls="nature-panel"><span class="burger"><i></i><i></i><i></i></span></button>
 
   <aside class="panel left info" id="nature-info" data-n="info" aria-label="About nature listening" aria-hidden="true">
@@ -34,8 +35,8 @@
       <p><b>Breath.</b> Ten seconds, six a minute. The mean surprise over the breath sets how complex the figure is. The spread sets how many modes mix. A little of where the energy sat in the band nudges which mode.</p>
       <p><b>Plate.</b> Sand is thrown off where the plate moves and comes to rest on the lines that stay still. Loudness of the voice moves the sand. Surprise chooses the shape. The modes are those of a circular membrane, J<sub>m</sub>(kr)·cos mθ.</p>
       <p><b>Sound.</b> Under the recording, quietly, each tone is the frequency of a mode shaping the sand. The animal is not resynthesized. The tones are not fed back into the measure; only the recording is read.</p>
-      <p><b>Loop.</b> The plate’s unrest is a temperature of listening, T = 1 + 0.6 × gain × (unrest − 0.3), kept between 0.5 and 1.8. Hotter listening holds its expectation more loosely, so the same phrase reads as stranger. Gain 0 leaves the listening alone. The recording is not touched.</p>
-      <p><b>Ensō.</b> One stroke opens each eleven minutes and fades. The voice does not take an empty minute. It is not a machine, and it is not asked to stop.</p>
+      <p><b>Open loop.</b> On these works the plate cannot answer. Unrest is shown and then discarded. It has no path back into the recording. Speed and tuning are yours, not the plate’s. Just sitting, the original piece, keeps its own closed loop. It is mounted whole, not rewritten.</p>
+      <p><b>Ensō.</b> Each work has its own stroke, in the same grains. The stroke stays open and closes on the last breath of an eleven-breath cycle. Dolphin never draws the circle. Echoes reveal it.</p>
     </div>
     <div class="sec">
       <h2>Voices</h2>
@@ -56,13 +57,17 @@
   <aside class="panel right" id="nature-panel" data-n="panel" aria-label="Settings" aria-hidden="true">
     <div class="head"><span class="clab">Settings</span><button class="x" data-n="panelClose" aria-label="Close settings">×</button></div>
     <div class="sec">
-      <div class="row"><span class="lab">Voice</span><span class="vsm" data-n="sourceLabel">Whale</span></div>
-      <div class="btns" data-n="sources" role="group" aria-label="Choose a voice"></div>
+      <span class="lab">Work</span>
+      <div data-n="works" role="group" aria-label="Choose a work"></div>
+    </div>
+    <div class="sec">
+      <div class="row"><span class="lab">Loop</span><span class="vsm" data-n="loopState">Open</span></div>
       <div class="row"><span class="lab">Band</span><span class="vsm" data-n="band"></span></div>
       <div class="row"><span class="lab">File</span><span class="vsm" data-n="fileName"></span></div>
       <p class="hint" data-n="hint"></p>
       <div class="btns">
-        <button class="toggle" data-n="loadBtn">Load a recording</button>
+        <button class="toggle" data-n="loadBtn">Your file</button>
+        <button class="toggle" data-n="clearFile">Use the work’s voice</button>
       </div>
       <canvas class="seis" data-n="seis" aria-label="Surprise, in bits, over the last twenty seconds"></canvas>
       <div class="row"><span class="lab">This moment</span><span class="val" data-n="rNow">0.00<small>BITS</small></span></div>
@@ -74,13 +79,15 @@
       <div class="row"><span class="lab">Breath</span><span class="vsm" data-n="rBreath">–</span></div>
       <div class="row"><span class="lab">Modes (m,n)</span><span class="vsm" data-n="rModes">–</span></div>
       <div class="row"><span class="lab">Frequencies</span><span class="vsm" data-n="rFreq">–</span></div>
-      <div class="row"><span class="lab">Temperature</span><span class="val" data-n="rT">1.00</span></div>
       <div class="row"><span class="lab">Unrest</span><span class="vsm" data-n="rU">0.00</span></div>
+      <p class="hint">Unrest is only shown. It does not return to the voice.</p>
     </div>
     <div class="sec">
-      <div class="row"><label class="lab" for="nature-gain">Loop gain</label><span class="val" data-n="rGain">1.00</span></div>
-      <input type="range" id="nature-gain" data-n="gain" min="0" max="2" step="0.01" value="1">
-      <p class="hint">How strongly unrest loosens the expectation. 0 leaves the listening alone. The recording is not changed.</p>
+      <div class="row"><label class="lab" for="nature-speed">Speed</label><span class="val" data-n="rSpeed">1.00×</span></div>
+      <input type="range" id="nature-speed" data-n="speed" min="0.5" max="1.5" step="0.05" value="1">
+      <div class="row"><label class="lab" for="nature-tune">Tuning</label><span class="val" data-n="rTune">0</span></div>
+      <input type="range" id="nature-tune" data-n="tune" min="-12" max="12" step="1" value="0">
+      <p class="hint">Speed is how fast the recording plays. Tuning is pitch, in semitones, without changing that speed. Both are yours. The plate does not move them.</p>
       <div class="row"><label class="lab" for="nature-echo">Echo</label><span class="val" data-n="rEcho">0.90</span></div>
       <input type="range" id="nature-echo" data-n="echo" min="0" max="0.97" step="0.01" value="0.9">
       <p class="hint">Each frame returns slightly smaller and turned.</p>
@@ -94,13 +101,17 @@
       </div>
     </div>
     <div class="foot">
-      <p class="hint">I about · P settings · F fullscreen · M sound · V voice · [ ] gain</p>
+      <p class="hint">I about · P settings · F fullscreen · M sound · V work · [ ] speed · − + tuning</p>
     </div>
   </aside>
   <input type="file" data-n="file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac,.aac" hidden>
   <audio data-n="audio" preload="auto" loop></audio>
+  <iframe class="sitting-frame" data-n="sitting" hidden title="Just sitting" allow="autoplay; fullscreen"></iframe>
 </div>
 <script src="sources.js"></script>
+<script src="works.js"></script>
+<script src="openvoice.js"></script>
+<script src="strokes.js"></script>
 <script src="plate.js"></script>
 <script src="listen.js"></script>
 <script src="render.js"></script>

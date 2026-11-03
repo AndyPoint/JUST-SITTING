@@ -5,13 +5,16 @@ var path = require("path");
 var dir = __dirname;
 var context = { console: console, Math: Math, Map: Map, Float32Array: Float32Array, Float64Array: Float64Array, Object: Object, URLSearchParams: URLSearchParams };
 vm.createContext(context);
-["plate.js", "listen.js", "sources.js", "mycelium.js"].forEach(function (name) {
+["plate.js", "listen.js", "sources.js", "mycelium.js", "works.js", "openvoice.js", "strokes.js"].forEach(function (name) {
   vm.runInContext(fs.readFileSync(path.join(dir, name), "utf8"), context, { filename: name });
 });
 var P = context.NaturePlate;
 var L = context.NatureListen;
 var M = context.NatureMycelium;
 var sources = context.NATURE_SOURCES;
+var works = context.NATURE_WORKS;
+var Open = context.NatureOpen;
+var Strokes = context.NatureStrokes;
 var failed = 0;
 function check(name, cond) {
   if (!cond) { failed++; console.error("FAIL " + name); }
@@ -111,6 +114,25 @@ check("bundled mycelium excerpt", series.length === 28800 && series[0] > 0.5 && 
 
 var st = L.statsOf([0.2, 0.4, 1.1]);
 check("breath stats", st.mu > 0.5 && st.mu < 0.6 && st.sigma > 0 && st.seed > 0);
+
+check("work order", works.map(function (w) { return w.id; }).join(",") === "sitting,mycelium,whale,tree,dolphin,plant");
+check("just sitting is the closed work", works[0].closed === true && works[0].stroke === null);
+check("nature works are open", works.slice(1).every(function (w) { return w.closed === false && w.stroke; }));
+var seenT = null;
+var voice = Open.seal({ pull: function (dt, T) { seenT = T; return { dt: dt }; } });
+voice.pull(0.2, 9);
+check("open voice is frozen", Object.isFrozen(voice));
+check("open pull takes one argument", voice.pull.length === 1);
+check("unrest cannot enter", voice.setUnrest === undefined && seenT === 1);
+var a0 = Strokes.openAngle(0, false, 0);
+var openEnd = Strokes.openAngle(1, false, 0);
+var shut = Strokes.openAngle(1, true, 1);
+check("stroke stays open until the last breath", openEnd - a0 < Math.PI * 2 - 0.4);
+check("last breath can close", shut - a0 > openEnd - a0);
+var dabs = [];
+var paper = { dab: function (x, y) { dabs.push([x, y]); }, fade: function () {}, fadeRim: function () {} };
+Strokes.create("plant").step(paper, { pos: 0.5, breath: 5, breaths: 11, last: false, close: 0, energy: 0.5, flux: 0, bits: 0.2, centroid: 0.4, phase: 0.2 });
+check("plant draws leaves before the circle closes", dabs.length > 8);
 
 if (failed) {
   console.error(failed + " failed");

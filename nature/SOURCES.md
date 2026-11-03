@@ -1,5 +1,11 @@
 # Sources and licenses
 
+The works page is `nature/index.html`. Just sitting is not a file in this folder: it is `just-sitting.html`, mounted whole, so its closed loop is the original one. Nature works do not feed the plate back into the recording.
+
+Tree song and small plant have no bundled voice. Drop a recording you have the right to play. A PlantWave session, a tree, a slowed ultrasonic click. Khait et al. 2023, plant sounds, are CC0 on Dryad ([10.5061/dryad.jwstqjqf7](https://doi.org/10.5061/dryad.jwstqjqf7)). The archive is 2 ms clips at 500 kHz. A download from this project was refused (HTTP 403). They are not bundled.
+
+Nothing non-commercial is included. Orcasound, Watkins, DOSITS, and Freesound NC stay out.
+
 Nature listening is part of JUST SITTING and is under the same [AGPL-3.0](../LICENSE) as the rest of the program.
 
 The recordings are not under that license. Each stays under the terms named here. A file is bundled only when the license is clear enough to name, and the file was fetched from the publisher for this copy.
