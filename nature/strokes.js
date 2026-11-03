@@ -14,20 +14,13 @@ var NatureStrokes = (function () {
     return -Math.PI / 2 + p * (TAU - gap);
   }
 
-  function grainsOnArc(paper, radius, from, to, step, rad, alpha) {
-    if (to < from) return;
-    for (var a = from; a <= to; a += step) {
-      paper.dab(Math.cos(a) * radius, Math.sin(a) * radius, rad, alpha);
-    }
-  }
-
-  /* Close the gap that sits across the top of the circle. */
+  /* Close the gap that sits across the top of the circle. A hairline, not a brush. */
   function closeGap(paper, amount, radius) {
     var full = 0.55;
     var left = full * (1 - (amount < 0 ? 0 : amount > 1 ? 1 : amount));
     var start = -Math.PI / 2 - full;
     var end = -Math.PI / 2 - left;
-    grainsOnArc(paper, radius || 0.96, start, end, 0.045, 0.018, 0.55);
+    if (paper.arc) paper.arc(radius || 0.96, start, end, 0.7);
   }
 
   function mycelium() {
@@ -42,7 +35,7 @@ var NatureStrokes = (function () {
             var a = openAngle(i / 13, false, 0);
             tips.push(tip(Math.cos(a) * 0.98, Math.sin(a) * 0.98, -Math.cos(a), -Math.sin(a), 0));
           }
-          grainsOnArc(paper, 0.98, openAngle(0, false, 0), openAngle(1, false, 0), 0.02, 0.005, 0.16);
+          if (paper.arc) paper.arc(0.98, openAngle(0, false, 0), openAngle(1, false, 0), 0.35);
         }
         paper.fadeRim(0.045 + (s.energy < 0.08 ? 0.03 : 0));
         var spike = s.flux > 0.09 || s.bits > 1.15;
@@ -56,10 +49,12 @@ var NatureStrokes = (function () {
           p.hx = p.hx * 0.82 - (p.x / inward) * 0.18 + wander * 0.08;
           p.hy = p.hy * 0.82 - (p.y / inward) * 0.18 + Math.cos(t * 0.9 + s.pos * 20) * 0.08;
           var h = Math.hypot(p.hx, p.hy) || 1;
+          var x0 = p.x, y0 = p.y;
           p.x += (p.hx / h) * grow;
           p.y += (p.hy / h) * grow;
           if (Math.hypot(p.x, p.y) < 0.04) { p.alive = false; continue; }
-          paper.dab(p.x, p.y, 0.006, 0.22 + 0.35 * (s.energy || 0));
+          if (paper.line) paper.line(x0, y0, p.x, p.y, 0.55 + 0.35 * (s.energy || 0));
+          else paper.dab(p.x, p.y, 0, 0.4);
           if (spike && tips.length < 36 && p.gen < 3 && (t % 7) === 0) {
             next.push(tip(p.x, p.y, -p.hy, p.hx, p.gen + 1));
           }
@@ -97,14 +92,17 @@ var NatureStrokes = (function () {
           var x0 = L.x + Math.cos(L.a) * L.grown;
           var y0 = L.y + Math.sin(L.a) * L.grown;
           L.grown += step;
-          paper.dab(x0, y0, Math.max(0.008, 0.02 - L.depth * 0.004), 0.34 + 0.3 * vigor);
+          var x1 = L.x + Math.cos(L.a) * L.grown;
+          var y1 = L.y + Math.sin(L.a) * L.grown;
+          if (paper.line) paper.line(x0, y0, x1, y1, 0.5 + 0.25 * vigor);
+          else paper.dab(x1, y1, 0, 0.4);
         }
         var b = s.breath | 0;
         if (b !== ring && b >= 0) {
           ring = b;
           var rad = 0.1 + 0.82 * ((b + 0.35) / s.breaths);
           var end = openAngle(1, s.last, s.close);
-          grainsOnArc(paper, rad, openAngle(0, false, 0), end, 0.09, 0.009, 0.22);
+          if (paper.arc) paper.arc(rad, openAngle(0, false, 0), end, 0.4);
           if (limbs.length > 0 && limbs.length < 40) {
             var parent = limbs[Math.min(limbs.length - 1, ((b % 7) + 7) % 7)];
             if (!parent) parent = limbs[0];
@@ -129,11 +127,9 @@ var NatureStrokes = (function () {
         var amp = (0.045 + 0.12 * (s.centroid || 0.25)) * (0.45 + 0.55 * (s.energy || 0));
         var rad = 0.9 + amp * Math.sin(ang * 3);
         var x = Math.cos(ang) * rad, y = Math.sin(ang) * rad;
-        if (prev) {
-          for (var u = 0; u <= 1; u += 0.34) {
-            paper.dab(prev.x + (x - prev.x) * u, prev.y + (y - prev.y) * u, 0.009, 0.42);
-          }
-        } else paper.dab(x, y, 0.009, 0.42);
+        var span = prev ? Math.hypot(x - prev.x, y - prev.y) : 0;
+        if (prev && span < 0.12 && paper.line) paper.line(prev.x, prev.y, x, y, 0.7);
+        else if (paper.grain) paper.grain(x, y, 0.55);
         prev = { x: x, y: y };
         if (s.last) closeGap(paper, s.close, 0.94);
       }
@@ -157,10 +153,8 @@ var NatureStrokes = (function () {
         for (var i = 0; i < pings.length; i++) {
           var p = pings[i];
           p.r += 0.01 + 0.018 * (s.energy || 0);
-          var span = p.w * (1.1 - p.r);
-          for (var da = -span; da <= span; da += 0.14) {
-            paper.dab(Math.cos(p.a + da) * p.r, Math.sin(p.a + da) * p.r, 0.011, 0.22 * (1.05 - p.r));
-          }
+          var span = p.w * (1.15 - Math.min(1, p.r));
+          if (paper.arc) paper.arc(p.r, p.a - span, p.a + span, 0.9 * (1.05 - Math.min(1, p.r)));
           if (p.r >= 0.93) {
             for (var k = -3; k <= 3; k++) echoes.push(p.a + k * 0.07);
             if (echoes.length > 700) echoes = echoes.slice(echoes.length - 700);
@@ -169,7 +163,8 @@ var NatureStrokes = (function () {
         pings = keep;
         for (var e = 0; e < echoes.length; e++) {
           var a = echoes[e];
-          paper.dab(Math.cos(a) * 0.95, Math.sin(a) * 0.95, 0.016, 0.72);
+          if (paper.grain) paper.grain(Math.cos(a) * 0.96, Math.sin(a) * 0.96, 0.85);
+          else paper.dab(Math.cos(a) * 0.96, Math.sin(a) * 0.96, 0, 0.85);
         }
         if (s.last) {
           var bins = 48;
@@ -181,7 +176,8 @@ var NatureStrokes = (function () {
           for (var b = 0; b < bins * s.close; b++) {
             if (seen[b]) continue;
             var aa = (b + 0.5) / bins * TAU;
-            paper.dab(Math.cos(aa) * 0.95, Math.sin(aa) * 0.95, 0.016, 0.55);
+            if (paper.grain) paper.grain(Math.cos(aa) * 0.96, Math.sin(aa) * 0.96, 0.7);
+            else paper.dab(Math.cos(aa) * 0.96, Math.sin(aa) * 0.96, 0, 0.7);
           }
         }
       }
@@ -200,11 +196,13 @@ var NatureStrokes = (function () {
           var rad = 0.16 + 0.78 * Math.sqrt((shown + 1) / (s.breaths + 1));
           var nx = Math.cos(a), ny = Math.sin(a);
           var px = -ny, py = nx;
-          for (var u = 0.15; u <= 1; u += 0.07) {
-            paper.dab(nx * rad * u, ny * rad * u, 0.008 + 0.01 * (1 - u), 0.36);
-          }
-          paper.dab(nx * rad + px * 0.045, ny * rad + py * 0.045, 0.028, 0.32 + 0.2 * (s.energy || 0));
-          paper.dab(nx * rad - px * 0.045, ny * rad - py * 0.045, 0.028, 0.32 + 0.2 * (s.energy || 0));
+          var x0 = nx * rad * 0.12, y0 = ny * rad * 0.12;
+          var x1 = nx * rad, y1 = ny * rad;
+          if (paper.line) {
+            paper.line(x0, y0, x1, y1, 0.55);
+            paper.line(x1, y1, x1 * 0.72 + px * 0.05, y1 * 0.72 + py * 0.05, 0.4);
+            paper.line(x1, y1, x1 * 0.72 - px * 0.05, y1 * 0.72 - py * 0.05, 0.4);
+          } else paper.dab(x1, y1, 0, 0.4);
         }
         if (s.last) closeGap(paper, s.close, 0.97);
       }

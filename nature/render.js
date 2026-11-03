@@ -116,11 +116,12 @@ var NatureView = (function () {
         " if (t.x >= 0. && t.y >= 0. && t.x <= 1. && t.y <= 1.) col = texture(prev, t).rgb; o = vec4(max(col*echo - eps, 0.), 1.); }";
       var PVS = "#version 300 es\nlayout(location=0) in vec2 p; uniform vec2 res; uniform vec2 ctr; uniform float rad; uniform float psize; void main(){ vec2 s = ctr + p*rad; gl_Position = vec4(s/res*2.-1., 0., 1.); gl_PointSize = psize; }";
       var PFS = "#version 300 es\nprecision mediump float; uniform vec3 col; out vec4 o; void main(){ o = vec4(col, 1.); }";
-      var OUT = "#version 300 es\nprecision highp float; out vec4 o; uniform sampler2D fb; uniform sampler2D wetmap; uniform vec2 res; uniform vec3 voidc; uniform vec3 inkA; uniform vec3 inkB; uniform float level; uniform float wetOn; uniform float cell;\n" +
+      var OUT = "#version 300 es\nprecision highp float; out vec4 o; uniform sampler2D fb; uniform sampler2D wetmap; uniform vec2 res; uniform vec3 voidc; uniform vec3 inkA; uniform vec3 inkB; uniform float level; uniform float wetOn; uniform float cell; uniform float fine;\n" +
         "float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }\n" +
-        "void main(){ vec2 cc = floor(gl_FragCoord.xy / cell); float w = texture(wetmap, (cc + 0.5) * cell / res).r; float n = h(cc), n2 = h(cc + 17.17);\n" +
-        " float on = step((0.045 + level) * (0.75 + 0.5 * n), w) * wetOn; vec3 ink = mix(inkA, inkB, n2) * (0.84 + 0.16 * clamp(w, 0., 1.));\n" +
-        " o = vec4(mix(voidc, ink, on) + texture(fb, gl_FragCoord.xy / res).rgb, 1.); }";
+        "void main(){ vec2 cc = floor(gl_FragCoord.xy / cell); float wf = texture(wetmap, gl_FragCoord.xy / res).r; float wc = texture(wetmap, (cc + 0.5) * cell / res).r; float n = h(cc), n2 = h(cc + 17.17);\n" +
+        " float on = step((0.045 + level) * (0.75 + 0.5 * n), wc) * wetOn * (1.0 - fine); vec3 ink = mix(inkA, inkB, n2) * (0.84 + 0.16 * clamp(wc, 0., 1.));\n" +
+        " vec3 line = vec3(0.96) * wf * wetOn * fine;\n" +
+        " o = vec4(mix(voidc, ink, on) + texture(fb, gl_FragCoord.xy / res).rgb + line, 1.); }";
       function sh(type, src) {
         var s = gl.createShader(type);
         gl.shaderSource(s, src);
@@ -220,7 +221,7 @@ var NatureView = (function () {
         cell = Math.max(1, Math.round(dpr * clamp(Math.round(Math.min(cssW, cssH) / 280), 2, 5)));
         var RE = Rp + gap;
         enso._RE = RE; enso._gap = gap; enso.cx = cx; enso.cy = cy;
-        var pw = Math.max(1, Math.ceil(W * 0.5)), ph = Math.max(1, Math.ceil(H * 0.5));
+        var pw = W, ph = H;
         if (enso.cv.width !== pw || enso.cv.height !== ph) {
           enso.cv.width = pw; enso.cv.height = ph;
           enso.clear();
@@ -231,18 +232,60 @@ var NatureView = (function () {
       },
       clearPaper: function () { enso.clear(); uploadWet(); },
       paper: function () {
-        var R = enso._RE || Rp, WS = 0.5, c = enso.ctx;
-        function dab(x, y, rad, alpha) {
+        var R = enso._RE || Rp, c = enso.ctx;
+        var hair = Math.max(1, dpr * 0.75);
+        c.imageSmoothingEnabled = false;
+        function xy(x, y) { return [cx + x * R, cy + y * R]; }
+        function tone(alpha) {
           var a = alpha < 0 ? 0 : alpha > 1 ? 1 : alpha;
-          c.globalCompositeOperation = "lighter";
-          c.fillStyle = "rgba(255,255,255," + a.toFixed(3) + ")";
-          c.beginPath();
-          c.arc((cx + x * R) * WS, (cy + y * R) * WS, Math.max(0.45, rad * R * WS), 0, TAU);
-          c.fill();
+          return a * 0.42;
+        }
+        function grain(x, y, alpha) {
+          var p = xy(x, y);
+          c.globalCompositeOperation = "source-over";
+          c.fillStyle = "rgba(255,255,255," + tone(alpha).toFixed(3) + ")";
+          c.fillRect(p[0] | 0, p[1] | 0, 1, 1);
+          enso.dirty = true;
+        }
+        function strokePath(alpha) {
+          c.globalCompositeOperation = "source-over";
+          c.strokeStyle = "rgba(255,255,255," + tone(alpha).toFixed(3) + ")";
+          c.lineWidth = hair;
+          c.lineCap = "butt";
+          c.lineJoin = "miter";
+          c.stroke();
           enso.dirty = true;
         }
         return {
-          dab: dab,
+          /* A mark is one device pixel: 0.5 CSS px when the screen is 2×. */
+          dab: function (x, y, rad, alpha) { grain(x, y, alpha); },
+          grain: grain,
+          line: function (x0, y0, x1, y1, alpha) {
+            var p0 = xy(x0, y0), p1 = xy(x1, y1);
+            c.beginPath();
+            c.moveTo(p0[0], p0[1]);
+            c.lineTo(p1[0], p1[1]);
+            strokePath(alpha);
+            var dx = p1[0] - p0[0], dy = p1[1] - p0[1];
+            var len = Math.hypot(dx, dy);
+            var step = Math.max(7 * dpr, 6);
+            for (var t = step * 0.5; t < len; t += step) {
+              var u = t / len;
+              grain(x0 + (x1 - x0) * u, y0 + (y1 - y0) * u, alpha * 0.85);
+            }
+          },
+          arc: function (radius, from, to, alpha) {
+            if (!(to > from)) return;
+            c.beginPath();
+            c.arc(cx, cy, Math.max(0.5, radius * R), from, to, false);
+            strokePath(alpha);
+            var len = (to - from) * radius * R;
+            var n = Math.max(0, Math.floor(len / Math.max(8 * dpr, 8)));
+            for (var i = 0; i < n; i++) {
+              var ang = from + (to - from) * ((i + 0.5) / n);
+              grain(Math.cos(ang) * radius, Math.sin(ang) * radius, alpha * 0.8);
+            }
+          },
           fade: function (amount) {
             c.globalCompositeOperation = "source-over";
             c.fillStyle = "rgba(0,0,0," + amount + ")";
@@ -250,10 +293,9 @@ var NatureView = (function () {
             enso.dirty = true;
           },
           fadeRim: function (amount) {
-            var gx = cx * WS, gy = cy * WS, rad = R * WS;
-            var g = c.createRadialGradient(gx, gy, rad * 0.2, gx, gy, rad * 1.08);
+            var g = c.createRadialGradient(cx, cy, R * 0.82, cx, cy, R * 1.02);
             g.addColorStop(0, "rgba(0,0,0,0)");
-            g.addColorStop(0.55, "rgba(0,0,0,0)");
+            g.addColorStop(0.72, "rgba(0,0,0,0)");
             g.addColorStop(1, "rgba(0,0,0," + amount + ")");
             c.globalCompositeOperation = "source-over";
             c.fillStyle = g;
@@ -275,8 +317,8 @@ var NatureView = (function () {
         if (!this.strokeOn && enso.dabs.length) enso.draw(f.draw || 0);
         if (enso.dirty) { uploadWet(); enso.dirty = false; }
         var echo = f.echo == null ? 0.9 : f.echo;
-        var pa = 0.06 + 0.5 * (1 - echo);
-        var psize = Math.max(1, 1.4 * dpr);
+        var pa = this.strokeOn ? 0.055 : (0.06 + 0.5 * (1 - echo));
+        var psize = this.strokeOn ? 1 : Math.max(1, 1.4 * dpr);
         if (!gl || !targets.length) return frame2d(f, pa, psize);
         var next = 1 - cur, A = targets[cur], B = targets[next];
         gl.bindFramebuffer(gl.FRAMEBUFFER, B.fbo);
@@ -312,6 +354,9 @@ var NatureView = (function () {
         gl.uniform1f(out.u.level, f.level || 0);
         gl.uniform1f(out.u.wetOn, f.wetOn == null ? 1 : f.wetOn);
         gl.uniform1f(out.u.cell, cell);
+        gl.uniform1f(out.u.fine, this.strokeOn ? 1 : 0);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, this.strokeOn ? gl.NEAREST : gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, this.strokeOn ? gl.NEAREST : gl.LINEAR);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
         gl.bindVertexArray(null);
         cur = next;

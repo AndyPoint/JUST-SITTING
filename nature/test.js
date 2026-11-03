@@ -130,7 +130,14 @@ var shut = Strokes.openAngle(1, true, 1);
 check("stroke stays open until the last breath", openEnd - a0 < Math.PI * 2 - 0.4);
 check("last breath can close", shut - a0 > openEnd - a0);
 var dabs = [];
-var paper = { dab: function (x, y) { dabs.push([x, y]); }, fade: function () {}, fadeRim: function () {} };
+var paper = {
+  dab: function (x, y) { dabs.push([x, y]); },
+  line: function (x0, y0, x1, y1) { dabs.push([x1, y1]); },
+  arc: function () { dabs.push([1, 0]); },
+  grain: function (x, y) { dabs.push([x, y]); },
+  fade: function () {},
+  fadeRim: function () {}
+};
 Strokes.create("plant").step(paper, { pos: 0.5, breath: 5, breaths: 11, last: false, close: 0, energy: 0.5, flux: 0, bits: 0.2, centroid: 0.4, phase: 0.2 });
 check("plant draws leaves before the circle closes", dabs.length > 8);
 
